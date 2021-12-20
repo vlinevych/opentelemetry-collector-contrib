@@ -48,6 +48,7 @@ func extractPodID(ctx context.Context, attrs pdata.AttributeMap, associations []
 		// If association configured to take IP address from connection
 		switch {
 		case asso.From == "connection" && connectionIP != "":
+			log.Info(fmt.Sprintf("VOVA [extractPodID] extracted IP from connection: %s", connectionIP))
 			return k8sIPLabelName, connectionIP
 		case asso.From == "resource_attribute":
 			// If association configured by resource_attribute
@@ -60,6 +61,7 @@ func extractPodID(ctx context.Context, attrs pdata.AttributeMap, associations []
 			} else {
 				// Extract values based on configured resource_attribute.
 				attributeValue := stringAttributeFromMap(attrs, asso.Name)
+				log.Info(fmt.Sprintf("VOVA [extractPodID] trying to extract IP from an attr: %s", asso.Name))
 				if attributeValue != "" {
 					return asso.Name, kube.PodIdentifier(attributeValue)
 				}
@@ -107,6 +109,10 @@ func extractPodIDNoAssociations(ctx context.Context, attrs pdata.AttributeMap) (
 
 func getConnectionIP(ctx context.Context) kube.PodIdentifier {
 	c := client.FromContext(ctx)
+
+	log, _ := zap.NewProduction()
+	log.Info(fmt.Sprintf("VOVA [getConnectionIP] returns %s", c.Addr.String()))
+
 	if c.Addr == nil {
 		return ""
 	}
