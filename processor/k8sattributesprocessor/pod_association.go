@@ -16,11 +16,13 @@ package k8sattributesprocessor // import "github.com/open-telemetry/opentelemetr
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/model/pdata"
 	conventions "go.opentelemetry.io/collector/model/semconv/v1.5.0"
+	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sattributesprocessor/kube"
 )
@@ -29,6 +31,12 @@ import (
 // It returns a value pair containing configured label and IP Address and/or Pod UID.
 // If empty value in return it means that attributes does not contains configured label to match resources for Pod.
 func extractPodID(ctx context.Context, attrs pdata.AttributeMap, associations []kube.Association) (string, kube.PodIdentifier) {
+
+	log, _ := zap.NewProduction()
+	log.Info("VOVA [extractPodID] extractPodID triggered")
+	log.Info(fmt.Sprintf("VOVA [extractPodID] Associations: %s", associations))
+	log.Info(fmt.Sprintf("VOVA [extractPodID] AttributeMap: %s", attrs))
+
 	// If pod association is not set
 	if len(associations) == 0 {
 		return extractPodIDNoAssociations(ctx, attrs)
@@ -58,31 +66,42 @@ func extractPodID(ctx context.Context, attrs pdata.AttributeMap, associations []
 			}
 		}
 	}
+
+	log.Info(fmt.Sprintf("VOVA [extractPodID] extractPodID returns empty"))
 	return "", ""
 }
 
 func extractPodIDNoAssociations(ctx context.Context, attrs pdata.AttributeMap) (string, kube.PodIdentifier) {
 	var podIP, labelIP kube.PodIdentifier
 	podIP = kube.PodIdentifier(stringAttributeFromMap(attrs, k8sIPLabelName))
+
+	log, _ := zap.NewProduction()
+	log.Info(fmt.Sprintf("VOVA [extractPodIDNoAssociations] triggered"))
+
 	if podIP != "" {
+		log.Info(fmt.Sprintf("VOVA [extractPodIDNoAssociations] association: podIP = %s", podIP))
 		return k8sIPLabelName, podIP
 	}
 
 	labelIP = kube.PodIdentifier(stringAttributeFromMap(attrs, clientIPLabelName))
 	if labelIP != "" {
+		log.Info(fmt.Sprintf("VOVA [extractPodIDNoAssociations]: labelIP = %s", labelIP))
 		return k8sIPLabelName, labelIP
 	}
 
 	connectionIP := getConnectionIP(ctx)
 	if connectionIP != "" {
+		log.Info(fmt.Sprintf("VOVA [extractPodIDNoAssociations]: connectionIP = %s", connectionIP))
 		return k8sIPLabelName, connectionIP
 	}
 
 	hostname := stringAttributeFromMap(attrs, conventions.AttributeHostName)
 	if net.ParseIP(hostname) != nil {
+		log.Info(fmt.Sprintf("VOVA [extractPodIDNoAssociations]: PodIdentifier(hostname) = %s", kube.PodIdentifier(hostname)))
 		return k8sIPLabelName, kube.PodIdentifier(hostname)
 	}
 
+	log.Info(fmt.Sprintf("VOVA [extractPodIDNoAssociations] returns empty list"))
 	return "", ""
 }
 

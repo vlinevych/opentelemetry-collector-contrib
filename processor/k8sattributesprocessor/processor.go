@@ -109,6 +109,9 @@ func (kp *kubernetesprocessor) processLogs(ctx context.Context, ld pdata.Logs) (
 // processResource adds Pod metadata tags to resource based on pod association configuration
 func (kp *kubernetesprocessor) processResource(ctx context.Context, resource pdata.Resource) {
 	podIdentifierKey, podIdentifierValue := extractPodID(ctx, resource.Attributes(), kp.podAssociations)
+	kp.logger.Debug(fmt.Sprintf("VOVA [processResource] podIdentifier %s : %s", podIdentifierKey, podIdentifierValue))
+	kp.logger.Debug(fmt.Sprintf("VOVA [processResource] resource: %s", resource))
+
 	if podIdentifierKey != "" {
 		resource.Attributes().InsertString(podIdentifierKey, string(podIdentifierValue))
 	}
@@ -120,9 +123,12 @@ func (kp *kubernetesprocessor) processResource(ctx context.Context, resource pda
 	if podIdentifierKey != "" {
 		if pod, ok := kp.kc.GetPod(podIdentifierValue); ok {
 			for key, val := range pod.Attributes {
+				kp.logger.Debug(fmt.Sprintf("VOVA [processResource] adding pod attributes %s %s", key, val))
 				resource.Attributes().InsertString(key, val)
 			}
 			kp.addContainerAttributes(resource.Attributes(), pod)
+		} else {
+			kp.logger.Debug(fmt.Sprintf("VOVA [processResource] failed to get pod by %s : %s", podIdentifierKey, podIdentifierValue))
 		}
 	}
 

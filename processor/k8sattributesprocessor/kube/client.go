@@ -310,6 +310,8 @@ func (c *WatchClient) extractPodAttributes(pod *api_v1.Pod) map[string]string {
 		}
 	}
 
+	c.logger.Debug(fmt.Sprintf("VOVA: pod %s has labels %s", pod.Name, pod.Labels))
+
 	for _, r := range c.Rules.Labels {
 		// By default if the From field is not set for labels and annotations we want to extract them from pod
 		if r.From == MetadataFromPod || r.From == "" {
@@ -341,6 +343,8 @@ func (c *WatchClient) extractPodAttributes(pod *api_v1.Pod) map[string]string {
 			}
 		}
 	}
+
+	c.logger.Debug(fmt.Sprintf("VOVA: tags extracted for %s are %s", pod.Name, tags))
 	return tags
 }
 
